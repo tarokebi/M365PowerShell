@@ -52,7 +52,7 @@ Get-ManagementRoleAssignment -RoleAssignee "Default Role Assignment Policy" `
 
 #
 # 出力ファイル名（デスクトップに作成）
-$csvPath = "$env:USERPROFILE\Desktop\UserAndAdminRoles.csv"
+$csvPath = "$env:USERPROFILE\_tools\dst\UserAndAdminRoles.csv"
 
 # ユーザーごとのロール割り当てを収集
 $results = @()
