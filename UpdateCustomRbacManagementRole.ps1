@@ -141,6 +141,12 @@ $results | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
 Write-Host "Done! Check it out! : $csvPath" -ForegroundColor Cyan
 
 
+
+# 差分確認
+Get-ManagementRoleEntry "CustomMyDistributionGroups\*" |
+    Select-Object Name, Parameters |
+    Export-Csv -Path "$env:USERPROFILE\Desktop\CustomMyDG_RoleEntries.csv" -NoTypeInformation -Encoding UTF8
+
 # 不要な権限だけ削除
 # CSV で以下を用意。
 # Cmdlet
