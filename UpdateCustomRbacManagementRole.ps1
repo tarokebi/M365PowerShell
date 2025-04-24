@@ -50,7 +50,7 @@ Get-ManagementRoleAssignment -RoleAssignee "Default Role Assignment Policy" `
 
 
 
-#
+# 管理者の権限が割り当てられているユーザーをピックアップ
 # 出力ファイル名（デスクトップに作成）
 $csvPath = "$env:USERPROFILE\_tools\dst\UserAndAdminRoles.csv"
 
@@ -85,3 +85,45 @@ $results | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
 
 Write-Host "✅ 出力完了！ファイル：$csvPath" -ForegroundColor Cyan
 
+
+
+# 管理者の権限が割り当てられているユーザーをピックアップ (改良版)
+# 出力先
+$csvPath = "$env:USERPROFILE\Desktop\UserAndAdminRoles.csv"
+$results = @()
+
+# 一括取得
+$mailboxes = Get-Mailbox -ResultSize Unlimited
+$roleGroups = Get-RoleGroup
+
+# 管理者ロールグループごとのメンバーを先に全て取得して辞書化
+$adminMembership = @{}
+foreach ($group in $roleGroups) {
+    $members = Get-RoleGroupMember $group.Name -ErrorAction SilentlyContinue
+    foreach ($member in $members) {
+        $key = $member.UserPrincipalName.ToLower()
+        if ($adminMembership.ContainsKey($key)) {
+            $adminMembership[$key] += $group.Name
+        } else {
+            $adminMembership[$key] = @($group.Name)
+        }
+    }
+}
+
+# ルックアップ形式で爆速チェック
+foreach ($mbx in $mailboxes) {
+    $key = $mbx.UserPrincipalName.ToLower()
+
+    $obj = [PSCustomObject]@{
+        DisplayName          = $mbx.DisplayName
+        UserPrincipalName    = $mbx.UserPrincipalName
+        RoleAssignmentPolicy = $mbx.RoleAssignmentPolicy
+        AdminRoleGroups      = $adminMembership[$key] -join ", "
+    }
+
+    $results += $obj
+}
+
+# 出力
+$results | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
+Write-Host "✅ 出力完了！ファイル：$csvPath" -ForegroundColor Cyan
