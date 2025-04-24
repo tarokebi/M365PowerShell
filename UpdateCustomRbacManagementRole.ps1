@@ -89,7 +89,7 @@ Write-Host "✅ 出力完了！ファイル：$csvPath" -ForegroundColor Cyan
 
 # ユーザー ・ 管理者について、個々に割り当てられているロール (ユーザーの役割 or 管理者の役割) をピックアップ (改良版)
 # 出力先
-$csvPath = "$env:USERPROFILE\Desktop\UserAndAdminRoles.csv"
+$csvPath = "$env:USERPROFILE\_tools\code\dst\UserAndAdminRoles.csv"
 $results = @()
 
 # 一括取得
