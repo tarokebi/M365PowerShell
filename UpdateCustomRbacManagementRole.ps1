@@ -93,10 +93,12 @@ $csvPath = "$env:USERPROFILE\Desktop\UserAndAdminRoles.csv"
 $results = @()
 
 # 一括取得
+Write-Host "Getting all mailboxes and role groups first..."
 $mailboxes = Get-Mailbox -ResultSize Unlimited
 $roleGroups = Get-RoleGroup
 
 # 管理者ロールグループごとのメンバーを先に全て取得して辞書化
+Write-Host "Getting all admins per role groups and make it a dictionary..."
 $adminMembership = @{}
 foreach ($group in $roleGroups) {
     $members = Get-RoleGroupMember $group.Name -ErrorAction SilentlyContinue
@@ -111,7 +113,16 @@ foreach ($group in $roleGroups) {
 }
 
 # ルックアップ形式で爆速チェック
+Write-Host "Looking up all assigned user or admin roles for each user..."
+$total = $mailboxes.Count
+$counter = 1
 foreach ($mbx in $mailboxes) {
+    $percent = [math]::Floor(($counter / $total) * 100)
+    $barLength = 50
+    $filled = [math]::Floor($percent / (100 / $barLength))
+    $bar = ('#' * $filled).PadRight($barLength)
+    Write-Host ("`r[{0}] {1}% - {2}" -f $bar, $percent, $mbx.UserPrincipalName) -NoNewline
+
     $key = $mbx.UserPrincipalName.ToLower()
 
     $obj = [PSCustomObject]@{
@@ -122,8 +133,9 @@ foreach ($mbx in $mailboxes) {
     }
 
     $results += $obj
+    $counter++
 }
 
 # 出力
 $results | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
-Write-Host "✅ 出力完了！ファイル：$csvPath" -ForegroundColor Cyan
+Write-Host "Done! Check it out! : $csvPath" -ForegroundColor Cyan
