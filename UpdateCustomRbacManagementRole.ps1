@@ -50,7 +50,7 @@ Get-ManagementRoleAssignment -RoleAssignee "Default Role Assignment Policy" `
 
 
 
-# 管理者の権限が割り当てられているユーザーをピックアップ
+# ユーザー ・ 管理者について、個々に割り当てられているロール (ユーザーの役割 or 管理者の役割) をピックアップ
 # 出力ファイル名（デスクトップに作成）
 $csvPath = "$env:USERPROFILE\_tools\dst\UserAndAdminRoles.csv"
 
@@ -87,7 +87,7 @@ Write-Host "✅ 出力完了！ファイル：$csvPath" -ForegroundColor Cyan
 
 
 
-# 管理者の権限が割り当てられているユーザーをピックアップ (改良版)
+# ユーザー ・ 管理者について、個々に割り当てられているロール (ユーザーの役割 or 管理者の役割) をピックアップ (改良版)
 # 出力先
 $csvPath = "$env:USERPROFILE\Desktop\UserAndAdminRoles.csv"
 $results = @()
