@@ -139,3 +139,34 @@ foreach ($mbx in $mailboxes) {
 # 出力
 $results | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
 Write-Host "Done! Check it out! : $csvPath" -ForegroundColor Cyan
+
+
+# 不要な権限だけ削除
+# CSV で以下を用意。
+# Cmdlet
+# Add-DistributionGroupMember
+# Remove-DistributionGroupMember
+# Upgrade-DistributionGroup
+
+# CSVファイルのパス（必要に応じて変更）
+$csvPath = "$env:USERPROFILE\Desktop\cmdlets_to_remove.csv"
+
+# 対象のカスタムロール名
+$roleName = "CustomMyDistributionGroups"
+
+# CSV 読み込み
+$cmdlets = Import-Csv -Path $csvPath
+
+# 1つずつ無効化
+foreach ($entry in $cmdlets) {
+    $fullEntry = "$roleName\$($entry.Cmdlet)"
+    try {
+        Remove-ManagementRoleEntry -Identity $fullEntry -Confirm:$false
+        Write-Host "✅ 削除成功: $fullEntry" -ForegroundColor Green
+    } catch {
+        Write-Host "❌ 削除失敗: $fullEntry - $_" -ForegroundColor Red
+    }
+}
+
+
+
