@@ -175,4 +175,16 @@ foreach ($entry in $cmdlets) {
 }
 
 
+# Use tracer if you want
+# トレース開始（ファイル名は自由に変更OK）
+Start-Transcript -Path "$env:USERPROFILE\Desktop\PowerShell_Log.txt" -Encoding UTF8
+
+# ↓ ここに通常どおりのコマンドを実行 ↓
+Get-ManagementRoleEntry "CustomMyDistributionGroups\*" | Select Name, Parameters
+
+# トレース終了
+Stop-Transcript
+
+
+
 
