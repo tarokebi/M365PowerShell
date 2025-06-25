@@ -1,0 +1,31 @@
+# 1. 表示名一覧のCSVを読み込む
+$inputList = Import-Csv -Path "names.csv"
+
+# 2. 結果格納用リストを作成
+$result = @()
+
+# 3. 各表示名ごとに Get-Recipient して情報取得
+foreach ($row in $inputList) {
+    $displayName = $row.DisplayName
+    $recipient = Get-Recipient -ResultSize Unlimited | Where-Object { $_.DisplayName -eq $displayName }
+
+    if ($recipient) {
+        $result += [PSCustomObject]@{
+            DisplayName       = $recipient.DisplayName
+            EmailAddress      = $recipient.PrimarySmtpAddress
+            RecipientType     = $recipient.RecipientType
+            Found             = "Yes"
+        }
+    } else {
+        # 見つからなかった場合も記録しておく
+        $result += [PSCustomObject]@{
+            DisplayName       = $displayName
+            EmailAddress      = ""
+            RecipientType     = ""
+            Found             = "No"
+        }
+    }
+}
+
+# 4. 出力
+$result | Export-Csv -Path "ResolvedRecipients.csv" -NoTypeInformation -Encoding UTF8
