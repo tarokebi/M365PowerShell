@@ -29,3 +29,19 @@ $result = foreach ($row in $inputList) {
 
 # 4. 出力
 $result | Export-Csv -Path "ResolvedRecipients.csv" -NoTypeInformation -Encoding UTF8
+
+###
+# 外部連絡先の PrimarySMTPAddress（メールアドレス）を指定
+$externalEmail = "someone@externaldomain.com"
+
+# メールが有効なセキュリティ グループをすべて取得
+$mailEnabledSecGroups = Get-DistributionGroup -ResultSize Unlimited | Where-Object { $_.GroupType -like "*SecurityEnabled*" }
+
+# 各グループに対して、対象の外部連絡先が含まれているかをチェック
+foreach ($group in $mailEnabledSecGroups) {
+    $members = Get-DistributionGroupMember -Identity $group.Identity -ResultSize Unlimited
+    if ($members.PrimarySmtpAddress -contains $externalEmail) {
+        Write-Host "✅ 見つかった！ $externalEmail はグループ '$($group.DisplayName)' に含まれているよ。"
+    }
+}
+
