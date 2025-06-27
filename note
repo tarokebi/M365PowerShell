@@ -134,4 +134,76 @@ $result | Export-Csv -Path "ExternalContacts_GroupMembership.csv" -NoTypeInforma
 Write-Progress -Activity "Completed" -Status "All groups processed." -Completed
 
 
+############################################################
+
+$date = (Get-Date).ToString("yyyy-MM-dd-HHmmss")
+$basePath = "C:"
+$cmdName = "Get-Recipient"
+$srcFileName = "src.csv"
+$dstFileName = "${date}_${cmdName}.csv"
+$srcFilePath = Join-Path -Path $basePath -ChildPath $srcFileName
+$dstFilePath = Join-Path -Path $basePath -ChildPath $dstFileName
+
+# 接頭文字（前方一致検索用）
+$prefix = "ヤマダABC）"
+
+# 結果を格納する配列
+$result = @()
+
+# 外部連絡先（MailContact）をすべて取得
+$mailContacts = Get-MailContact -ResultSize Unlimited | Where-Object {
+  $_.DisplayName -like "$prefix*"
+}
+
+# 一致する外部連絡先をログ表示（確認用）
+Write-Host "`n対象となる外部連絡先:"
+$mailContacts | ForEach-Object { Write-Host " - $($_.DisplayName)" }
+
+# DisplayName をキーにして高速検索できるようにハッシュ化
+$targetContacts = @{}
+foreach ($c in $mailContacts) {
+  $normalizedName = ($c.DisplayName.Normalize('FormKC') -replace '[\u200B-\u200D\uFEFF\s]', '').Trim()
+  $targetContacts[$normalizedName] = $c
+}
+
+# すべての Mail-enabled セキュリティグループを取得
+$groups = Get-DistributionGroup -ResultSize Unlimited | Where-Object {
+  $_.RecipientTypeDetails -eq "MailUniversalSecurityGroup"
+}
+
+# 進捗バー用
+$totalGroups = $groups.Count
+$index = 0
+
+# グループをチェック
+foreach ($group in $groups) {
+  $index++
+  Write-Progress -Activity "Checking Groups" `
+    -Status "Processing '$($group.DisplayName)'" `
+    -PercentComplete (($index / $totalGroups) * 100)
+
+  $members = Get-DistributionGroupMember -Identity $group.Identity -ResultSize Unlimited
+  $externalMembers = $members | Where-Object { $_.RecipientType -eq "MailContact" }
+
+  foreach ($member in $externalMembers) {
+    $normalizedMemberName = ($member.DisplayName.Normalize('FormKC') -replace '[\u200B-\u200D\uFEFF\s]', '').Trim()
+    if ($targetContacts.ContainsKey($normalizedMemberName)) {
+      $result += [PSCustomObject]@{
+        DisplayName        = $member.DisplayName
+        Address            = $member.PrimarySmtpAddress
+        SecurityGroupName  = $group.DisplayName
+        SecurityGroupAlias = $group.Alias
+      }
+    }
+  }
+}
+
+# 出力
+$result | Export-Csv -Path $dstFileName -NoTypeInformation -Encoding UTF8
+
+# 完了メッセージ
+Write-Host "`n✅ 完了！マッチした $($result.Count) 件を出力しました。"
+Write-Progress -Activity "完了" -Status "All groups processed." -Completed
+
+############################################################
 
