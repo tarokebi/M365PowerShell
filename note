@@ -31,17 +31,37 @@ $result = foreach ($row in $inputList) {
 $result | Export-Csv -Path "ResolvedRecipients.csv" -NoTypeInformation -Encoding UTF8
 
 ###
-# 外部連絡先の PrimarySMTPAddress（メールアドレス）を指定
 $externalEmail = "someone@externaldomain.com"
+$matchedGroups = @()
 
-# メールが有効なセキュリティ グループをすべて取得
 $mailEnabledSecGroups = Get-DistributionGroup -ResultSize Unlimited | Where-Object { $_.GroupType -like "*SecurityEnabled*" }
 
-# 各グループに対して、対象の外部連絡先が含まれているかをチェック
+$total = $mailEnabledSecGroups.Count
+$count = 0
+
 foreach ($group in $mailEnabledSecGroups) {
+    $count++
+
+    # 🌈 進捗バー表示
+    Write-Progress -Activity "Checking groups..." `
+                   -Status "Checking: $($group.DisplayName)" `
+                   -PercentComplete (($count / $total) * 100)
+
     $members = Get-DistributionGroupMember -Identity $group.Identity -ResultSize Unlimited
+
     if ($members.PrimarySmtpAddress -contains $externalEmail) {
-        Write-Host "✅ 見つかった！ $externalEmail はグループ '$($group.DisplayName)' に含まれているよ。"
+        $matchedGroups += $group.DisplayName
     }
 }
+
+# 結果の表示
+Write-Progress -Activity "Checking groups..." -Completed
+
+if ($matchedGroups.Count -gt 0) {
+    Write-Host "`n📌 見つかったグループ一覧："
+    $matchedGroups | ForEach-Object { Write-Host " - $_" }
+} else {
+    Write-Host "🔍 指定された外部連絡先は、どのメールが有効なセキュリティグループにも含まれていないみたい。"
+}
+
 
