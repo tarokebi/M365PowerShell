@@ -31,9 +31,19 @@ $result = foreach ($row in $inputList) {
 $result | Export-Csv -Path "ResolvedRecipients.csv" -NoTypeInformation -Encoding UTF8
 
 ###
-$externalEmail = "someone@externaldomain.com"
-$matchedGroups = @()
+# 🔸 検索対象の外部アドレスをここに配列で定義
+$externalEmails = @(
+    "one@example.com",
+    "two@example.com",
+    "three@example.com",
+    "four@example.com",
+    "five@example.com"
+)
 
+# 🔸 結果格納用（@{ アドレス = [所属してるグループ名の配列] } の形で保存）
+$results = @{}
+
+# 🔸 対象となるメールが有効なセキュリティグループ一覧を取得
 $mailEnabledSecGroups = Get-DistributionGroup -ResultSize Unlimited | Where-Object { $_.GroupType -like "*SecurityEnabled*" }
 
 $total = $mailEnabledSecGroups.Count
@@ -41,27 +51,33 @@ $count = 0
 
 foreach ($group in $mailEnabledSecGroups) {
     $count++
-
-    # 🌈 進捗バー表示
     Write-Progress -Activity "Checking groups..." `
                    -Status "Checking: $($group.DisplayName)" `
                    -PercentComplete (($count / $total) * 100)
 
     $members = Get-DistributionGroupMember -Identity $group.Identity -ResultSize Unlimited
 
-    if ($members.PrimarySmtpAddress -contains $externalEmail) {
-        $matchedGroups += $group.DisplayName
+    foreach ($email in $externalEmails) {
+        if ($members.PrimarySmtpAddress -contains $email) {
+            if (-not $results.ContainsKey($email)) {
+                $results[$email] = @()
+            }
+            $results[$email] += $group.DisplayName
+        }
     }
 }
 
-# 結果の表示
 Write-Progress -Activity "Checking groups..." -Completed
 
-if ($matchedGroups.Count -gt 0) {
-    Write-Host "`n📌 見つかったグループ一覧："
-    $matchedGroups | ForEach-Object { Write-Host " - $_" }
-} else {
-    Write-Host "🔍 指定された外部連絡先は、どのメールが有効なセキュリティグループにも含まれていないみたい。"
+# 🔸 結果表示！
+foreach ($email in $externalEmails) {
+    Write-Host "`n📬 $email の所属グループ："
+    if ($results.ContainsKey($email)) {
+        $results[$email] | ForEach-Object { Write-Host " - $_" }
+    } else {
+        Write-Host " - (所属なし)"
+    }
 }
+
 
 
