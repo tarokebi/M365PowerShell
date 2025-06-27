@@ -79,5 +79,59 @@ foreach ($email in $externalEmails) {
     }
 }
 
+###
+# CSV 読み込み
+$csvContacts = Import-Csv -Path "external_contacts.csv"
+$targetContacts = @{}
+foreach ($contact in $csvContacts) {
+    $trimmedDisplayName = $contact.DisplayName.Trim()
+    $targetContacts[$trimmedDisplayName] = $null
+}
+
+# 外部連絡先を取得
+$mailContacts = Get-MailContact -ResultSize Unlimited
+
+# グループ一覧を取得
+$groups = Get-DistributionGroup -ResultSize Unlimited | Where-Object {
+    $_.RecipientTypeDetails -eq "MailUniversalSecurityGroup"
+}
+
+# 結果格納用
+$result = @()
+
+# 進捗バー表示用カウンタ
+$totalGroups = $groups.Count
+$index = 0
+
+foreach ($group in $groups) {
+    $index++
+    
+    # 進捗バーの表示
+    Write-Progress -Activity "Checking Groups" `
+                   -Status "Processing '$($group.DisplayName)'" `
+                   -PercentComplete (($index / $totalGroups) * 100)
+
+    $members = Get-DistributionGroupMember -Identity $group.Identity -ResultSize Unlimited
+    $externalMembers = $members | Where-Object { $_.RecipientType -eq "MailContact" }
+
+    foreach ($member in $externalMembers) {
+        $trimmedName = $member.DisplayName.Trim()
+        if ($targetContacts.ContainsKey($trimmedName)) {
+            $result += [PSCustomObject]@{
+                DisplayName        = $member.DisplayName
+                Address            = $member.PrimarySmtpAddress
+                SecurityGroupName  = $group.DisplayName
+                SecurityGroupAlias = $group.Alias
+            }
+        }
+    }
+}
+
+# 結果出力
+$result | Export-Csv -Path "ExternalContacts_GroupMembership.csv" -NoTypeInformation -Encoding UTF8
+
+# 最後に進捗バーをクリア（お好みで）
+Write-Progress -Activity "Completed" -Status "All groups processed." -Completed
+
 
 
