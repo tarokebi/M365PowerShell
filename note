@@ -224,3 +224,26 @@ $sendOnBehalf = (Get-Mailbox $sharedMailbox).GrantSendOnBehalfTo |
     SendOnBehalf    = if ($sendOnBehalf) { $true } else { $false }
 }
 ############################################################
+# 管理者として確認したいユーザー
+$targetUser = "user@example.com"
+
+# ▼ 配布グループ (DL) の所有者に該当するものを取得
+$dlOwned = Get-DistributionGroup -ResultSize Unlimited |
+    Where-Object {
+        (Get-DistributionGroup -Identity $_.Identity).ManagedBy -contains $targetUser
+    } | Select-Object DisplayName, PrimarySmtpAddress, ManagedBy
+
+# ▼ 共有メールボックスのフルアクセス権を確認
+$sharedMailboxAdmin = Get-Mailbox -RecipientTypeDetails SharedMailbox -ResultSize Unlimited |
+    Where-Object {
+        (Get-MailboxPermission -Identity $_.Identity -User $targetUser -ErrorAction SilentlyContinue | 
+         Where-Object { $_.AccessRights -contains "FullAccess" -and $_.IsInherited -eq $false })
+    } | Select-Object DisplayName, PrimarySmtpAddress
+
+# ▼ 結果を表示
+Write-Host "`n【$targetUser が所有している配布グループ】`n"
+$dlOwned | Format-Table
+
+Write-Host "`n【$targetUser が管理している共有メールボックス (フルアクセス)】`n"
+$sharedMailboxAdmin | Format-Table
+############################################################
