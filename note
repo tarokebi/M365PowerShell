@@ -206,4 +206,21 @@ Write-Host "`n✅ 完了！マッチした $($result.Count) 件を出力しま�
 Write-Progress -Activity "完了" -Status "All groups processed." -Completed
 
 ############################################################
+$sharedMailbox = "SharedMailbox@contoso.com"
+$user = "user@contoso.com"
 
+$fullAccess = Get-MailboxPermission -Identity $sharedMailbox |
+    Where-Object { $_.User -eq $user -and $_.AccessRights -contains "FullAccess" }
+
+$sendAs = Get-ADPermission -Identity $sharedMailbox |
+    Where-Object { $_.User -like $user -and $_.ExtendedRights -contains "Send As" }
+
+$sendOnBehalf = (Get-Mailbox $sharedMailbox).GrantSendOnBehalfTo |
+    Where-Object { $_.PrimarySmtpAddress -eq $user }
+
+[PSCustomObject]@{
+    FullAccess      = if ($fullAccess) { $true } else { $false }
+    SendAs          = if ($sendAs)     { $true } else { $false }
+    SendOnBehalf    = if ($sendOnBehalf) { $true } else { $false }
+}
+############################################################
