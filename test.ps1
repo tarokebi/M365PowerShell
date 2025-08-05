@@ -25,3 +25,30 @@ $renamed = $csv | Select-Object @{
 
 # 5. 新しい CSV に出力
 $renamed | Export-Csv -Path "output.csv" -NoTypeInformation -Encoding UTF8
+
+
+#### ----------
+# Distribution Group の一覧を取得
+$groups = Get-DistributionGroup -ResultSize Unlimited
+
+# 出力用のオブジェクト一覧を作成
+$results = foreach ($group in $groups) {
+    # EmailAddresses プロパティから SMTP アドレスを取り出す（大文字小文字無視で "smtp:" プレフィックス削除）
+    $emails = $group.EmailAddresses | ForEach-Object {
+        ($_ -replace '(?i)^smtp:', '')  # 先頭の smtp: or SMTP: を削除
+    }
+
+    # セミコロン区切りに変換
+    $mail = $emails -join ';'
+
+    # 新しいオブジェクトを生成
+    [PSCustomObject]@{
+        uid              = $group.Name
+        mail             = $mail
+        mailLocalAddress = $mail
+        userType         = 0
+    }
+}
+
+# 出力
+$results | Export-Csv -Path "output.csv" -NoTypeInformation -Encoding UTF8
